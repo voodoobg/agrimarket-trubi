@@ -1,11 +1,12 @@
 <script setup lang="ts">
 const { setProducts, updateProductList } = useProducts();
-const { isQueryEmpty, productsPerPage } = useHelpers();
+const { isQueryEmpty } = useHelpers();
 const { storeSettings } = useAppConfig();
 const route = useRoute();
 const slug = route.params.slug;
 
-const { data } = await useAsyncGql('getProducts', { slug, first: productsPerPage });
+// Fetch more products to enable client-side filtering within category
+const { data } = await useAsyncGql('getProducts', { slug, first: 500 });
 const productsInCategory = (data.value?.products?.nodes || []) as Product[];
 setProducts(productsInCategory);
 
