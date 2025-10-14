@@ -15,7 +15,7 @@ export default defineNuxtConfig({
       htmlAttrs: { lang: 'en' },
       link: [{ rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' }],
     },
-    pageTransition: { name: 'page', mode: 'default' },
+    pageTransition: { name: 'page', mode: 'out-in' },
   },
 
   plugins: [resolve('./app/plugins/init.ts')],

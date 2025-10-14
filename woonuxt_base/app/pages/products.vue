@@ -5,7 +5,7 @@ const { storeSettings } = useAppConfig();
 const { isQueryEmpty } = useHelpers();
 
 const { data } = await useAsyncGql('getProducts');
-const allProducts = data.value?.products?.nodes as Product[];
+const allProducts = (data.value?.products?.nodes || []) as Product[];
 setProducts(allProducts);
 
 const hasProducts = computed<boolean>(() => Array.isArray(allProducts) && allProducts.length > 0);
