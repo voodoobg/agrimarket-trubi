@@ -2,9 +2,9 @@
 const { setProducts, updateProductList } = useProducts();
 const route = useRoute();
 const { storeSettings } = useAppConfig();
-const { isQueryEmpty } = useHelpers();
+const { isQueryEmpty, productsPerPage } = useHelpers();
 
-const { data } = await useAsyncGql('getProducts');
+const { data } = await useAsyncGql('getProducts', { first: productsPerPage });
 const allProducts = (data.value?.products?.nodes || []) as Product[];
 setProducts(allProducts);
 

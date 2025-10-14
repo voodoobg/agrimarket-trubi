@@ -1,11 +1,11 @@
 <script setup lang="ts">
 const { setProducts, updateProductList } = useProducts();
-const { isQueryEmpty } = useHelpers();
+const { isQueryEmpty, productsPerPage } = useHelpers();
 const { storeSettings } = useAppConfig();
 const route = useRoute();
 const slug = route.params.slug;
 
-const { data } = await useAsyncGql('getProducts', { slug });
+const { data } = await useAsyncGql('getProducts', { slug, first: productsPerPage });
 const productsInCategory = (data.value?.products?.nodes || []) as Product[];
 setProducts(productsInCategory);
 
