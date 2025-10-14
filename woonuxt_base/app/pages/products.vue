@@ -3,13 +3,37 @@ const { setProducts, updateProductList } = useProducts();
 const route = useRoute();
 const { storeSettings } = useAppConfig();
 const { isQueryEmpty } = useHelpers();
+const { getCachedData, setCachedData } = useProductCache();
 
-// Fetch all products for the main products page to enable client-side filtering
-const { data } = await useAsyncGql('getProducts', { first: 1000 });
-const allProducts = (data.value?.products?.nodes || []) as Product[];
-setProducts(allProducts);
+// Try to load from localStorage cache immediately for instant display
+const cachedProducts = getCachedData<Product[]>('all-products');
+const isShowingCached = ref(false);
 
-const hasProducts = computed<boolean>(() => Array.isArray(allProducts) && allProducts.length > 0);
+if (cachedProducts && cachedProducts.length > 0) {
+  setProducts(cachedProducts);
+  isShowingCached.value = true;
+}
+
+// Fetch all products with caching
+const { data, pending } = await useAsyncData(
+  'all-products',
+  () => GqlGetProducts({ first: 1000 }),
+  {
+    getCachedData: (key) => useNuxtApp().payload.data[key] || useNuxtApp().static.data[key],
+  }
+);
+
+const allProducts = computed(() => (data.value?.products?.nodes || []) as Product[]);
+const hasProducts = computed<boolean>(() => Array.isArray(allProducts.value) && allProducts.value.length > 0);
+
+// Set products when data is available and save to cache
+watch(allProducts, (products) => {
+  if (products.length > 0) {
+    setProducts(products);
+    setCachedData('all-products', products);
+    isShowingCached.value = false;
+  }
+}, { immediate: true });
 
 onMounted(() => {
   if (!isQueryEmpty.value) updateProductList();
@@ -30,17 +54,28 @@ useHead({
 </script>
 
 <template>
-  <div class="container flex items-start gap-16" v-if="hasProducts">
-    <Filters v-if="storeSettings.showFilters" />
-
-    <div class="w-full">
-      <div class="flex items-center justify-between w-full gap-4 mt-8 md:gap-8">
-        <ProductResultCount />
-        <OrderByDropdown class="hidden md:inline-flex" v-if="storeSettings.showOrderByDropdown" />
-        <ShowFilterTrigger v-if="storeSettings.showFilters" class="md:hidden" />
-      </div>
-      <ProductGrid />
+  <div class="container min-h-[500px]">
+    <!-- Loading State (only show if no cached data) -->
+    <div v-if="pending && !isShowingCached" class="flex flex-col items-center justify-center py-24">
+      <LoadingIcon size="60" />
+      <p class="mt-4 text-lg text-gray-600">Loading products...</p>
     </div>
+
+    <!-- Products Loaded (from cache or fresh) -->
+    <div v-else-if="hasProducts || isShowingCached" class="flex items-start gap-16">
+      <Filters v-if="storeSettings.showFilters" />
+
+      <div class="w-full">
+        <div class="flex items-center justify-between w-full gap-4 mt-8 md:gap-8">
+          <ProductResultCount />
+          <OrderByDropdown class="hidden md:inline-flex" v-if="storeSettings.showOrderByDropdown" />
+          <ShowFilterTrigger v-if="storeSettings.showFilters" class="md:hidden" />
+        </div>
+        <ProductGrid />
+      </div>
+    </div>
+
+    <!-- No Products -->
+    <NoProductsFound v-else>No products found. Please try adjusting your filters or check back later.</NoProductsFound>
   </div>
-  <NoProductsFound v-else>No products found. Please try adjusting your filters or check back later.</NoProductsFound>
 </template>
