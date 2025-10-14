@@ -46,6 +46,9 @@ watch(allProducts, (products) => {
       setCachedData('all-products', products);
     }
     isShowingCached.value = false;
+  } else if (products && Array.isArray(products) && products.length === 0) {
+    // Ensure empty array is set even if no products
+    setProducts([]);
   }
 }, { immediate: true });
 

@@ -3,12 +3,13 @@ const route = useRoute();
 const { productsPerPage } = useHelpers();
 const { products } = useProducts();
 const page = ref(parseInt(route.params.pageNumber as string) || 1);
-const productsToShow = computed(() => products.value.slice((page.value - 1) * productsPerPage, page.value * productsPerPage));
+const productsToShow = computed(() => (products.value || []).slice((page.value - 1) * productsPerPage, page.value * productsPerPage));
+const hasProducts = computed(() => Array.isArray(products.value) && products.value.length > 0);
 </script>
 
 <template>
   <Transition name="fade" mode="out-in">
-    <section v-if="!!products.length" class="relative w-full">
+    <section v-if="hasProducts" class="relative w-full">
       <TransitionGroup name="shrink" tag="div" mode="in-out" class="product-grid">
         <ProductCard v-for="(node, i) in productsToShow" :key="node.id || i" :node :index="i" />
       </TransitionGroup>
