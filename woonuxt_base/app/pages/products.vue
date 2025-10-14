@@ -3,34 +3,48 @@ const { setProducts, updateProductList } = useProducts();
 const route = useRoute();
 const { storeSettings } = useAppConfig();
 const { isQueryEmpty } = useHelpers();
-const { getCachedData, setCachedData } = useProductCache();
 
-// Try to load from localStorage cache immediately for instant display
-const cachedProducts = getCachedData<Product[]>('all-products');
 const isShowingCached = ref(false);
+const isLoading = ref(!import.meta.server);
 
-if (cachedProducts && cachedProducts.length > 0) {
-  setProducts(cachedProducts);
-  isShowingCached.value = true;
+// Only use cache on client-side
+if (import.meta.client) {
+  const { getCachedData } = useProductCache();
+  const cachedProducts = getCachedData<Product[]>('all-products');
+  
+  if (cachedProducts && Array.isArray(cachedProducts) && cachedProducts.length > 0) {
+    setProducts(cachedProducts);
+    isShowingCached.value = true;
+    isLoading.value = false;
+  }
 }
 
-// Fetch all products with caching
+// Fetch all products with caching - use lazy mode to show loading spinner
 const { data, pending } = await useAsyncData(
   'all-products',
-  () => GqlGetProducts({ first: 1000 }),
+  async () => {
+    const result = await GqlGetProducts({ first: 1000 });
+    isLoading.value = false;
+    return result;
+  },
   {
+    lazy: true,
     getCachedData: (key) => useNuxtApp().payload.data[key] || useNuxtApp().static.data[key],
   }
 );
 
 const allProducts = computed(() => (data.value?.products?.nodes || []) as Product[]);
 const hasProducts = computed<boolean>(() => Array.isArray(allProducts.value) && allProducts.value.length > 0);
+const showLoading = computed(() => (pending.value || isLoading.value) && !isShowingCached.value);
 
 // Set products when data is available and save to cache
 watch(allProducts, (products) => {
-  if (products.length > 0) {
+  if (products && Array.isArray(products) && products.length > 0) {
     setProducts(products);
-    setCachedData('all-products', products);
+    if (import.meta.client) {
+      const { setCachedData } = useProductCache();
+      setCachedData('all-products', products);
+    }
     isShowingCached.value = false;
   }
 }, { immediate: true });
@@ -56,7 +70,7 @@ useHead({
 <template>
   <div class="container min-h-[500px]">
     <!-- Loading State (only show if no cached data) -->
-    <div v-if="pending && !isShowingCached" class="flex flex-col items-center justify-center py-24">
+    <div v-if="showLoading" class="flex flex-col items-center justify-center py-24">
       <LoadingIcon size="60" />
       <p class="mt-4 text-lg text-gray-600">Loading products...</p>
     </div>
