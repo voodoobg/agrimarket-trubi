@@ -5,9 +5,12 @@ import { ProductsOrderByEnum } from '#woo';
 const { siteName, description, shortDescription, siteImage } = useAppConfig();
 
 console.log('🔴 [Home Page GraphQL] Fetching categories...');
-const { data } = await useAsyncGql('getProductCategories', { first: 6 });
-const productCategories = data.value?.productCategories?.nodes || [];
-console.log('✅ [Home Page GraphQL] Categories fetched', { count: productCategories.length });
+const { data: categoriesData } = await useAsyncGql('getProductCategories', { first: 6 });
+const productCategories = computed(() => categoriesData.value?.productCategories?.nodes || []);
+console.log('✅ [Home Page GraphQL] Categories fetched', { 
+  count: productCategories.value.length,
+  data: productCategories.value.map(c => c.name) 
+});
 
 console.log('🔴 [Home Page GraphQL] Fetching popular products...');
 const { data: productData, error: productError } = await useAsyncGql('getProducts', { first: 5, orderby: ProductsOrderByEnum.POPULARITY });
@@ -16,8 +19,21 @@ if (productError.value) {
   console.error('❌ [Home Page GraphQL] Failed to fetch popular products:', productError.value);
 }
 
-const popularProducts = productData.value?.products?.nodes || [];
-console.log('✅ [Home Page GraphQL] Popular products fetched', { count: popularProducts.length });
+const popularProducts = computed(() => productData.value?.products?.nodes || []);
+console.log('✅ [Home Page GraphQL] Popular products fetched', { 
+  count: popularProducts.value.length,
+  data: popularProducts.value.map(p => p.name)
+});
+
+// Add mounted hook to verify data on client
+onMounted(() => {
+  console.log('🟢 [Home Page] Component mounted', {
+    categoriesCount: productCategories.value.length,
+    productsCount: popularProducts.value.length,
+    categories: productCategories.value,
+    products: popularProducts.value
+  });
+});
 
 console.log('🏠 [Home Page] Setup complete');
 
@@ -114,12 +130,19 @@ useSeoMeta({
       </div>
     </section>
 
-    <section class="container my-16" v-if="popularProducts">
+    <section class="container my-16" v-if="popularProducts.length > 0">
       <div class="flex items-end justify-between">
         <h2 class="text-lg font-semibold md:text-2xl">{{ $t('messages.shop.popularProducts') }}</h2>
         <NuxtLink class="text-primary" to="/products">{{ $t('messages.general.viewAll') }}</NuxtLink>
       </div>
       <ProductRow :products="popularProducts" class="grid-cols-2 md:grid-cols-4 lg:grid-cols-5 mt-8" />
+    </section>
+    
+    <!-- Debug section (remove after testing) -->
+    <section class="container my-8 p-4 bg-yellow-100" v-if="popularProducts.length === 0 && productCategories.length === 0">
+      <p class="text-red-600 font-bold">⚠️ Debug: No data loaded</p>
+      <p>Categories: {{ productCategories.length }}</p>
+      <p>Products: {{ popularProducts.length }}</p>
     </section>
   </main>
 </template>
