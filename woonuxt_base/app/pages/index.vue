@@ -5,20 +5,24 @@ import { ProductsOrderByEnum } from '#woo';
 const { siteName, description, shortDescription, siteImage } = useAppConfig();
 
 console.log('🔴 [Home Page GraphQL] Fetching categories...');
-const { data: categoriesData, error: categoriesError } = await useAsyncData(
-  'home-categories',
+const { data: categoriesData, error: categoriesError, refresh: refreshCategories } = await useAsyncData(
+  `home-categories-${Date.now()}`, // Add timestamp to avoid stale cache
   async () => {
     console.log('🔵 [Home Page] Categories fetch function executing...');
     try {
       const result = await GqlGetProductCategories({ first: 6 });
       const nodes = result?.productCategories?.nodes || [];
-      console.log('✅ [Home Page] Categories fetched:', { count: nodes.length });
+      console.log('✅ [Home Page] Categories fetched:', { count: nodes.length, nodes });
       // Return the nodes directly, not the wrapper
       return nodes;
     } catch (err) {
       console.error('❌ [Home Page] Categories fetch error:', err);
       return []; // Return empty array on error
     }
+  },
+  {
+    server: true,  // Force SSR execution
+    immediate: true, // Execute immediately
   }
 );
 
@@ -35,19 +39,24 @@ console.log('✅ [Home Page GraphQL] Categories setup complete', {
 });
 
 console.log('🔴 [Home Page GraphQL] Fetching popular products...');
-const { data: productData, error: productError } = await useAsyncData(
-  'home-products',
+const { data: productData, error: productError, refresh: refreshProducts } = await useAsyncData(
+  `home-products-${Date.now()}`, // Add timestamp to avoid stale cache
   async () => {
+    console.log('🔵 [Home Page] Products fetch function executing...');
     try {
       const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY });
       const nodes = result?.products?.nodes || [];
-      console.log('✅ [Home Page] Products fetched:', { count: nodes.length });
+      console.log('✅ [Home Page] Products fetched:', { count: nodes.length, nodes });
       // Return the nodes directly, not the wrapper
       return nodes;
     } catch (err) {
       console.error('❌ [Home Page] Products fetch failed:', err);
       return []; // Return empty array on error
     }
+  },
+  {
+    server: true,  // Force SSR execution
+    immediate: true, // Execute immediately
   }
 );
 
