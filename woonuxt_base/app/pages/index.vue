@@ -18,18 +18,38 @@ console.log('✅ [Home Page GraphQL] Categories fetched', {
 console.log('🔴 [Home Page GraphQL] Fetching popular products...');
 const { data: productData, error: productError } = await useAsyncData(
   'home-products',
-  () => GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY })
+  async () => {
+    try {
+      const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY });
+      console.log('✅ [Home Page] Products fetch successful', result);
+      return result;
+    } catch (err) {
+      console.error('❌ [Home Page] Products fetch failed:', {
+        error: err,
+        message: err?.message,
+        statusCode: err?.statusCode,
+        gqlErrors: err?.gqlErrors,
+        fullError: JSON.stringify(err, null, 2)
+      });
+      throw err;
+    }
+  }
 );
 
 if (productError.value) {
-  console.error('❌ [Home Page GraphQL] Failed to fetch popular products:', productError.value);
+  console.error('❌ [Home Page GraphQL] Failed to fetch popular products:', {
+    error: productError.value,
+    message: productError.value?.message,
+    data: productError.value?.data,
+    statusCode: productError.value?.statusCode
+  });
 }
 
 const popularProducts = computed(() => productData.value?.products?.nodes || []);
-console.log('✅ [Home Page GraphQL] Popular products fetched', { 
+console.log('✅ [Home Page GraphQL] Popular products data', { 
   count: popularProducts.value.length,
   dataAvailable: !!productData.value,
-  rawData: productData.value
+  hasError: !!productError.value
 });
 
 // Add mounted hook to verify data on client
@@ -146,10 +166,17 @@ useSeoMeta({
     </section>
     
     <!-- Debug section (remove after testing) -->
-    <section class="container my-8 p-4 bg-yellow-100" v-if="popularProducts.length === 0 && productCategories.length === 0">
+    <section class="container my-8 p-4 bg-yellow-100 rounded" v-if="popularProducts.length === 0 && productCategories.length === 0">
       <p class="text-red-600 font-bold">⚠️ Debug: No data loaded</p>
       <p>Categories: {{ productCategories.length }}</p>
       <p>Products: {{ popularProducts.length }}</p>
+    </section>
+    
+    <!-- Show warning if only products failed but categories loaded -->
+    <section class="container my-8 p-4 bg-blue-100 rounded" v-if="productCategories.length > 0 && popularProducts.length === 0">
+      <p class="text-blue-600 font-bold">ℹ️ Info: Categories loaded but popular products failed</p>
+      <p>This is usually okay - the categories section should still work.</p>
+      <p>Check console for product fetch error details.</p>
     </section>
   </main>
 </template>
