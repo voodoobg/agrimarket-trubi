@@ -5,15 +5,21 @@ import { ProductsOrderByEnum } from '#woo';
 const { siteName, description, shortDescription, siteImage } = useAppConfig();
 
 console.log('🔴 [Home Page GraphQL] Fetching categories...');
-const { data: categoriesData } = await useAsyncGql('getProductCategories', { first: 6 });
+const { data: categoriesData } = await useAsyncData(
+  'home-categories',
+  () => GqlGetProductCategories({ first: 6 })
+);
 const productCategories = computed(() => categoriesData.value?.productCategories?.nodes || []);
 console.log('✅ [Home Page GraphQL] Categories fetched', { 
   count: productCategories.value.length,
-  data: productCategories.value.map(c => c.name) 
+  dataAvailable: !!categoriesData.value
 });
 
 console.log('🔴 [Home Page GraphQL] Fetching popular products...');
-const { data: productData, error: productError } = await useAsyncGql('getProducts', { first: 5, orderby: ProductsOrderByEnum.POPULARITY });
+const { data: productData, error: productError } = await useAsyncData(
+  'home-products',
+  () => GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY })
+);
 
 if (productError.value) {
   console.error('❌ [Home Page GraphQL] Failed to fetch popular products:', productError.value);
@@ -22,7 +28,8 @@ if (productError.value) {
 const popularProducts = computed(() => productData.value?.products?.nodes || []);
 console.log('✅ [Home Page GraphQL] Popular products fetched', { 
   count: popularProducts.value.length,
-  data: popularProducts.value.map(p => p.name)
+  dataAvailable: !!productData.value,
+  rawData: productData.value
 });
 
 // Add mounted hook to verify data on client
