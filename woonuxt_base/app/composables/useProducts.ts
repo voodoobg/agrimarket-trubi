@@ -9,15 +9,23 @@ export function useProducts() {
    * @param {Product[]} newProducts - The new products to set.
    */
   function setProducts(newProducts: Product[]): void {
+    console.log('📦 [useProducts] setProducts called', { 
+      count: Array.isArray(newProducts) ? newProducts.length : 'NOT_ARRAY',
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack?.split('\n')[2]?.trim()
+    });
+    
     // If newProducts is not an array, reset products and allProducts
     // to empty arrays to avoid errors in the UI.
     if (!Array.isArray(newProducts)) {
+      console.warn('⚠️ [useProducts] newProducts is not an array, resetting');
       products.value = [];
       allProducts = [];
       return;
     }
     products.value = [...newProducts];
     allProducts = JSON.parse(JSON.stringify(newProducts));
+    console.log('✅ [useProducts] Products set successfully', { count: newProducts.length });
   }
 
   // Named function for product filtering pipeline
@@ -36,25 +44,40 @@ export function useProducts() {
 
   // Named async function for better performance and debugging
   async function updateProductList(): Promise<void> {
+    console.log('🔄 [useProducts] updateProductList called', { 
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack?.split('\n')[2]?.trim()
+    });
+    
     const { scrollToTop } = useHelpers();
     const { isSortingActive } = useSorting();
     const { isFiltersActive } = useFiltering();
     const { isSearchActive } = useSearching();
+
+    console.log('🔍 [useProducts] Filter states', {
+      isSortingActive: isSortingActive.value,
+      isFiltersActive: isFiltersActive.value,
+      isSearchActive: isSearchActive.value,
+      allProductsCount: allProducts.length
+    });
 
     // scroll to top of page
     scrollToTop();
 
     // return all products if no filters are active
     if (!isFiltersActive.value && !isSearchActive.value && !isSortingActive.value) {
+      console.log('✅ [useProducts] No filters active, returning all products');
       products.value = allProducts;
       return;
     }
 
     // otherwise, apply filter, search and sorting in that order
     try {
+      console.log('🔧 [useProducts] Applying filters...');
       products.value = applyProductFilters(allProducts);
+      console.log('✅ [useProducts] Filters applied', { resultCount: products.value.length });
     } catch (error) {
-      console.error(error);
+      console.error('❌ [useProducts] Error applying filters:', error);
     }
   }
 

@@ -1,12 +1,20 @@
 <script lang="ts" setup>
+console.log('🏠 [Home Page] Script setup started');
+
 import { ProductsOrderByEnum } from '#woo';
 const { siteName, description, shortDescription, siteImage } = useAppConfig();
 
+console.log('🔴 [Home Page GraphQL] Fetching categories...');
 const { data } = await useAsyncGql('getProductCategories', { first: 6 });
 const productCategories = data.value?.productCategories?.nodes || [];
+console.log('✅ [Home Page GraphQL] Categories fetched', { count: productCategories.length });
 
+console.log('🔴 [Home Page GraphQL] Fetching popular products...');
 const { data: productData } = await useAsyncGql('getProducts', { first: 5, orderby: ProductsOrderByEnum.POPULARITY });
 const popularProducts = productData.value?.products?.nodes || [];
+console.log('✅ [Home Page GraphQL] Popular products fetched', { count: popularProducts.length });
+
+console.log('🏠 [Home Page] Setup complete');
 
 useSeoMeta({
   title: `Home`,
