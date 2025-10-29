@@ -1,9 +1,8 @@
 let allProducts = [] as Product[];
 
 export function useProducts() {
-  // Declare the state variables with null to indicate uninitialized state
-  const products = useState<Product[] | null>('products', () => null);
-  const isProductsLoading = useState<boolean>('isProductsLoading', () => false);
+  // Declare the state variables and the setter functions with default empty array
+  const products = useState<Product[]>('products', () => []);
 
   /**
    * Sets the products state variable and the allProducts variable.
@@ -22,17 +21,11 @@ export function useProducts() {
       console.warn('⚠️ [useProducts] newProducts is not an array, resetting');
       products.value = [];
       allProducts = [];
-      isProductsLoading.value = false;
       return;
     }
     products.value = [...newProducts];
     allProducts = JSON.parse(JSON.stringify(newProducts));
-    isProductsLoading.value = false;
     console.log('✅ [useProducts] Products set successfully', { count: newProducts.length });
-  }
-  
-  function setProductsLoading(loading: boolean): void {
-    isProductsLoading.value = loading;
   }
 
   // Named function for product filtering pipeline
@@ -88,5 +81,5 @@ export function useProducts() {
     }
   }
 
-  return { products, allProducts, setProducts, updateProductList, isProductsLoading, setProductsLoading };
+  return { products, allProducts, setProducts, updateProductList };
 }
