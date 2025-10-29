@@ -5,17 +5,30 @@ const { products } = useProducts();
 const page = ref(parseInt(route.params.pageNumber as string) || 1);
 const productsToShow = computed(() => (products.value || []).slice((page.value - 1) * productsPerPage, page.value * productsPerPage));
 const hasProducts = computed(() => Array.isArray(products.value) && products.value.length > 0);
+
+// Track if we're in initial loading state (products is undefined or null, not just empty array)
+const isInitialLoading = computed(() => !products.value || products.value === null);
+const showNoProducts = computed(() => !isInitialLoading.value && !hasProducts.value);
 </script>
 
 <template>
   <Transition name="fade" mode="out-in">
-    <section v-if="hasProducts" class="relative w-full">
+    <!-- Loading state -->
+    <div v-if="isInitialLoading" class="flex flex-col items-center justify-center py-24 min-h-[400px]">
+      <LoadingIcon size="60" />
+      <p class="mt-4 text-lg text-gray-600">Loading products...</p>
+    </div>
+    
+    <!-- Products loaded -->
+    <section v-else-if="hasProducts" class="relative w-full">
       <TransitionGroup name="shrink" tag="div" mode="in-out" class="product-grid">
         <ProductCard v-for="(node, i) in productsToShow" :key="node.id || i" :node :index="i" />
       </TransitionGroup>
       <Pagination />
     </section>
-    <NoProductsFound v-else />
+    
+    <!-- No products (only after loading) -->
+    <NoProductsFound v-else-if="showNoProducts" />
   </Transition>
 </template>
 
