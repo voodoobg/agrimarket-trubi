@@ -35,13 +35,19 @@ export default defineNuxtPlugin(async (nuxtApp) => {
       console.log('🛒 [Init Plugin] Cart refresh result:', { success });
 
       useGqlError((err: any) => {
-        console.error('❌ [Init Plugin] GraphQL Error:', err);
-        const serverErrors = ['The iss do not match with this server', 'Invalid session token'];
-        if (serverErrors.includes(err?.gqlErrors?.[0]?.message)) {
-          console.warn('⚠️ [Init Plugin] Server error detected, clearing cookies and reloading');
-          clearAllCookies();
-          clearAllLocalStorage();
-          window.location.reload();
+        // Only log actual GraphQL errors with messages
+        if (err?.gqlErrors && err.gqlErrors.length > 0) {
+          console.error('❌ [Init Plugin] GraphQL Error:', err);
+          const serverErrors = ['The iss do not match with this server', 'Invalid session token'];
+          if (serverErrors.includes(err?.gqlErrors?.[0]?.message)) {
+            console.warn('⚠️ [Init Plugin] Server error detected, clearing cookies and reloading');
+            clearAllCookies();
+            clearAllLocalStorage();
+            window.location.reload();
+          }
+        } else {
+          // Network/connection errors without GraphQL error details - just log as warning
+          console.warn('⚠️ [Init Plugin] Network error (non-critical):', err?.statusCode || 'unknown');
         }
       });
 

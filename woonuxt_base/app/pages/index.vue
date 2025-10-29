@@ -10,11 +10,45 @@ const productCategories = data.value?.productCategories?.nodes || [];
 console.log('✅ [Home Page GraphQL] Categories fetched', { count: productCategories.length });
 
 console.log('🔴 [Home Page GraphQL] Fetching popular products...');
-const { data: productData } = await useAsyncGql('getProducts', { first: 5, orderby: ProductsOrderByEnum.POPULARITY });
+const { data: productData, error: productError } = await useAsyncGql('getProducts', { first: 5, orderby: ProductsOrderByEnum.POPULARITY });
+
+if (productError.value) {
+  console.error('❌ [Home Page GraphQL] Failed to fetch popular products:', productError.value);
+}
+
 const popularProducts = productData.value?.products?.nodes || [];
 console.log('✅ [Home Page GraphQL] Popular products fetched', { count: popularProducts.length });
 
 console.log('🏠 [Home Page] Setup complete');
+
+// Preload full product list in background for faster /products page
+if (import.meta.client) {
+  console.log('🔄 [Home Page] Starting background product preload...');
+  
+  // Wait a bit to let the page render first
+  setTimeout(async () => {
+    const { getCachedData, setCachedData } = useProductCache();
+    
+    // Check if already cached
+    const cachedProducts = getCachedData<Product[]>('all-products');
+    
+    if (!cachedProducts || cachedProducts.length === 0) {
+      console.log('🔄 [Home Page] Preloading products in background...');
+      try {
+        const result = await GqlGetProducts({ first: 300 });
+        const products = result?.products?.nodes || [];
+        if (products.length > 0) {
+          setCachedData('all-products', products);
+          console.log('✅ [Home Page] Background preload complete', { count: products.length });
+        }
+      } catch (err) {
+        console.warn('⚠️ [Home Page] Background preload failed (non-critical):', err);
+      }
+    } else {
+      console.log('✅ [Home Page] Products already cached, skipping preload');
+    }
+  }, 2000); // Wait 2 seconds after page load
+}
 
 useSeoMeta({
   title: `Home`,
