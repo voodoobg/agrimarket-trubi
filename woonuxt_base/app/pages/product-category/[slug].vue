@@ -52,6 +52,7 @@ watch(error, (newError) => {
 const productsInCategory = computed(() => (data.value?.products?.nodes || []) as Product[]);
 const hasProducts = computed(() => productsInCategory.value.length > 0);
 const showLoading = computed(() => (pending.value || isLoading.value) && !isShowingCached.value);
+const showNoProducts = computed(() => !showLoading.value && !hasProducts.value && !isShowingCached.value);
 
 // Set products when data is available and save to cache
 watch(productsInCategory, (products) => {
@@ -109,8 +110,8 @@ useHead({
         </div>
       </div>
 
-      <!-- No Products -->
-      <NoProductsFound v-else>No products found in this category.</NoProductsFound>
+    <!-- No Products (only show after loading is done) -->
+    <NoProductsFound v-else-if="showNoProducts">No products found in this category.</NoProductsFound>
       
       <!-- Fallback for SSR -->
       <template #fallback>

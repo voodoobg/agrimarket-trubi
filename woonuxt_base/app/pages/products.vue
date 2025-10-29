@@ -70,6 +70,7 @@ console.log('🔵 [Products Page] useAsyncData setup complete', { pending: pendi
 const allProducts = computed(() => (data.value?.products?.nodes || []) as Product[]);
 const hasProducts = computed<boolean>(() => Array.isArray(allProducts.value) && allProducts.value.length > 0);
 const showLoading = computed(() => (pending.value || isLoading.value) && !isShowingCached.value);
+const showNoProducts = computed(() => !showLoading.value && !hasProducts.value && !isShowingCached.value);
 
 // Set products when data is available and save to cache
 watch(allProducts, (products, oldProducts) => {
@@ -165,8 +166,8 @@ useHead({
         </div>
       </div>
 
-      <!-- No Products -->
-      <NoProductsFound v-else>No products found. Please try adjusting your filters or check back later.</NoProductsFound>
+    <!-- No Products (only show after loading is done) -->
+    <NoProductsFound v-else-if="showNoProducts">No products found. Please try adjusting your filters or check back later.</NoProductsFound>
       
       <!-- Fallback for SSR -->
       <template #fallback>
