@@ -11,32 +11,27 @@ const { data: categoriesData, error: categoriesError } = await useAsyncData(
     console.log('🔵 [Home Page] Categories fetch function executing...');
     try {
       const result = await GqlGetProductCategories({ first: 6 });
-      console.log('✅ [Home Page] Categories raw result:', result);
-      console.log('✅ [Home Page] Categories nodes:', result?.productCategories?.nodes);
-      return result;
+      const nodes = result?.productCategories?.nodes || [];
+      console.log('✅ [Home Page] Categories fetched:', { count: nodes.length });
+      // Return the nodes directly, not the wrapper
+      return nodes;
     } catch (err) {
       console.error('❌ [Home Page] Categories fetch error:', err);
-      throw err;
+      return []; // Return empty array on error
     }
   }
 );
 
 console.log('📊 [Home Page] Categories data state:', {
   hasData: !!categoriesData.value,
-  hasError: !!categoriesError.value,
-  rawData: categoriesData.value,
-  error: categoriesError.value
+  count: categoriesData.value?.length || 0,
+  hasError: !!categoriesError.value
 });
 
-const productCategories = computed(() => {
-  const nodes = categoriesData.value?.productCategories?.nodes || [];
-  console.log('📊 [Home Page] Categories computed:', nodes.length);
-  return nodes;
-});
+const productCategories = computed(() => categoriesData.value || []);
 
 console.log('✅ [Home Page GraphQL] Categories setup complete', { 
-  count: productCategories.value.length,
-  dataAvailable: !!categoriesData.value
+  count: productCategories.value.length
 });
 
 console.log('🔴 [Home Page GraphQL] Fetching popular products...');
@@ -45,34 +40,24 @@ const { data: productData, error: productError } = await useAsyncData(
   async () => {
     try {
       const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY });
-      console.log('✅ [Home Page] Products fetch successful', result);
-      return result;
+      const nodes = result?.products?.nodes || [];
+      console.log('✅ [Home Page] Products fetched:', { count: nodes.length });
+      // Return the nodes directly, not the wrapper
+      return nodes;
     } catch (err) {
-      console.error('❌ [Home Page] Products fetch failed:', {
-        error: err,
-        message: err?.message,
-        statusCode: err?.statusCode,
-        gqlErrors: err?.gqlErrors,
-        fullError: JSON.stringify(err, null, 2)
-      });
-      throw err;
+      console.error('❌ [Home Page] Products fetch failed:', err);
+      return []; // Return empty array on error
     }
   }
 );
 
 if (productError.value) {
-  console.error('❌ [Home Page GraphQL] Failed to fetch popular products:', {
-    error: productError.value,
-    message: productError.value?.message,
-    data: productError.value?.data,
-    statusCode: productError.value?.statusCode
-  });
+  console.error('❌ [Home Page GraphQL] Product error:', productError.value);
 }
 
-const popularProducts = computed(() => productData.value?.products?.nodes || []);
-console.log('✅ [Home Page GraphQL] Popular products data', { 
+const popularProducts = computed(() => productData.value || []);
+console.log('✅ [Home Page GraphQL] Popular products setup complete', { 
   count: popularProducts.value.length,
-  dataAvailable: !!productData.value,
   hasError: !!productError.value
 });
 
@@ -81,21 +66,19 @@ onMounted(() => {
   console.log('🟢 [Home Page] Component mounted', {
     categoriesCount: productCategories.value.length,
     productsCount: popularProducts.value.length,
-    categoriesData: categoriesData.value,
-    productData: productData.value,
-    hasCategories: !!categoriesData.value,
-    hasProducts: !!productData.value
+    categories: productCategories.value,
+    products: popularProducts.value
   });
   
-  // Force a re-check after mount
-  setTimeout(() => {
-    console.log('🔄 [Home Page] Delayed check (2s after mount):', {
-      categoriesCount: productCategories.value.length,
-      productsCount: popularProducts.value.length,
+  // If no data, log the raw state
+  if (productCategories.value.length === 0 || popularProducts.value.length === 0) {
+    console.warn('⚠️ [Home Page] Missing data on mount!', {
       categoriesRaw: categoriesData.value,
-      productsRaw: productData.value
+      productsRaw: productData.value,
+      hasCategories: !!categoriesData.value,
+      hasProducts: !!productData.value
     });
-  }, 2000);
+  }
 });
 
 console.log('🏠 [Home Page] Setup complete');
