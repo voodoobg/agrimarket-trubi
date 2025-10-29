@@ -1,20 +1,20 @@
 <script setup lang="ts">
 const route = useRoute();
 const { productsPerPage } = useHelpers();
-const { products } = useProducts();
+const { products, isProductsLoading } = useProducts();
 const page = ref(parseInt(route.params.pageNumber as string) || 1);
 const productsToShow = computed(() => (products.value || []).slice((page.value - 1) * productsPerPage, page.value * productsPerPage));
-const hasProducts = computed(() => Array.isArray(products.value) && products.value.length > 0);
+const hasProducts = computed(() => Array.isArray(products.value) && products.value && products.value.length > 0);
 
-// Track if we're in initial loading state (products is undefined or null, not just empty array)
-const isInitialLoading = computed(() => !products.value || products.value === null);
-const showNoProducts = computed(() => !isInitialLoading.value && !hasProducts.value);
+// Show loading when explicitly loading OR when products is null (not initialized)
+const isLoading = computed(() => isProductsLoading.value || products.value === null);
+const showNoProducts = computed(() => !isLoading.value && !hasProducts.value);
 </script>
 
 <template>
   <Transition name="fade" mode="out-in">
     <!-- Loading state -->
-    <div v-if="isInitialLoading" class="flex flex-col items-center justify-center py-24 min-h-[400px]">
+    <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 min-h-[400px]">
       <LoadingIcon size="60" />
       <p class="mt-4 text-lg text-gray-600">Loading products...</p>
     </div>

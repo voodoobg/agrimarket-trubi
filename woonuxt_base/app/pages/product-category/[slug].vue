@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { setProducts, updateProductList } = useProducts();
+const { setProducts, updateProductList, setProductsLoading } = useProducts();
 const { isQueryEmpty } = useHelpers();
 const { storeSettings } = useAppConfig();
 const route = useRoute();
@@ -8,6 +8,9 @@ const slug = route.params.slug;
 const isShowingCached = ref(false);
 const isLoading = ref(true); // Always start as loading for consistent SSR/CSR
 const cacheKey = `category-products-${slug}`;
+
+// Set global loading state
+setProductsLoading(true);
 
 // Only use cache on client-side
 if (import.meta.client) {
@@ -18,6 +21,7 @@ if (import.meta.client) {
     setProducts(cachedProducts);
     isShowingCached.value = true;
     isLoading.value = false;
+    setProductsLoading(false);
   }
 }
 
@@ -28,10 +32,12 @@ const { data, pending, error } = await useAsyncData(
     try {
       const result = await GqlGetProducts({ slug, first: 200 }); // Reduced from 500 to prevent timeout
       isLoading.value = false;
+      setProductsLoading(false);
       return result;
     } catch (err) {
       console.error('❌ [Category Page] Failed to fetch products:', err);
       isLoading.value = false;
+      setProductsLoading(false);
       throw err;
     }
   },

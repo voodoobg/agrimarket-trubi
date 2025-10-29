@@ -1,7 +1,7 @@
 <script setup lang="ts">
 console.log('🔵 [Products Page] Script setup started');
 
-const { setProducts, updateProductList } = useProducts();
+const { setProducts, updateProductList, setProductsLoading } = useProducts();
 const route = useRoute();
 const { storeSettings } = useAppConfig();
 const { isQueryEmpty } = useHelpers();
@@ -9,6 +9,9 @@ const { isQueryEmpty } = useHelpers();
 const isShowingCached = ref(false);
 const isLoading = ref(true); // Always start as loading for consistent SSR/CSR
 const fetchCount = ref(0);
+
+// Set global loading state
+setProductsLoading(true);
 
 console.log('🔵 [Products Page] Initial setup complete', { isServer: import.meta.server });
 
@@ -22,6 +25,7 @@ if (import.meta.client) {
     setProducts(cachedProducts);
     isShowingCached.value = true;
     isLoading.value = false;
+    setProductsLoading(false);
   } else {
     console.log('⚠️ [Products Page] No cache found');
   }
@@ -44,10 +48,12 @@ const { data, pending, error } = await useAsyncData(
         attempt: fetchCount.value 
       });
       isLoading.value = false;
+      setProductsLoading(false);
       return result;
     } catch (err) {
       console.error('❌ [GraphQL] Failed to fetch products:', err);
       isLoading.value = false;
+      setProductsLoading(false);
       throw err;
     }
   },
