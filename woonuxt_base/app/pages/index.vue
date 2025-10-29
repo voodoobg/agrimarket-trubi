@@ -5,12 +5,36 @@ import { ProductsOrderByEnum } from '#woo';
 const { siteName, description, shortDescription, siteImage } = useAppConfig();
 
 console.log('🔴 [Home Page GraphQL] Fetching categories...');
-const { data: categoriesData } = await useAsyncData(
+const { data: categoriesData, error: categoriesError } = await useAsyncData(
   'home-categories',
-  () => GqlGetProductCategories({ first: 6 })
+  async () => {
+    console.log('🔵 [Home Page] Categories fetch function executing...');
+    try {
+      const result = await GqlGetProductCategories({ first: 6 });
+      console.log('✅ [Home Page] Categories raw result:', result);
+      console.log('✅ [Home Page] Categories nodes:', result?.productCategories?.nodes);
+      return result;
+    } catch (err) {
+      console.error('❌ [Home Page] Categories fetch error:', err);
+      throw err;
+    }
+  }
 );
-const productCategories = computed(() => categoriesData.value?.productCategories?.nodes || []);
-console.log('✅ [Home Page GraphQL] Categories fetched', { 
+
+console.log('📊 [Home Page] Categories data state:', {
+  hasData: !!categoriesData.value,
+  hasError: !!categoriesError.value,
+  rawData: categoriesData.value,
+  error: categoriesError.value
+});
+
+const productCategories = computed(() => {
+  const nodes = categoriesData.value?.productCategories?.nodes || [];
+  console.log('📊 [Home Page] Categories computed:', nodes.length);
+  return nodes;
+});
+
+console.log('✅ [Home Page GraphQL] Categories setup complete', { 
   count: productCategories.value.length,
   dataAvailable: !!categoriesData.value
 });
@@ -57,9 +81,21 @@ onMounted(() => {
   console.log('🟢 [Home Page] Component mounted', {
     categoriesCount: productCategories.value.length,
     productsCount: popularProducts.value.length,
-    categories: productCategories.value,
-    products: popularProducts.value
+    categoriesData: categoriesData.value,
+    productData: productData.value,
+    hasCategories: !!categoriesData.value,
+    hasProducts: !!productData.value
   });
+  
+  // Force a re-check after mount
+  setTimeout(() => {
+    console.log('🔄 [Home Page] Delayed check (2s after mount):', {
+      categoriesCount: productCategories.value.length,
+      productsCount: popularProducts.value.length,
+      categoriesRaw: categoriesData.value,
+      productsRaw: productData.value
+    });
+  }, 2000);
 });
 
 console.log('🏠 [Home Page] Setup complete');
