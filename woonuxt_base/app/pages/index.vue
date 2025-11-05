@@ -14,7 +14,8 @@ const { data: categoriesData, error: categoriesError, refresh: refreshCategories
   async () => {
     console.log('🔵 [Home Page] Categories fetch function executing...', {
       isServer: import.meta.server,
-      isClient: import.meta.client
+      isClient: import.meta.client,
+      gqlHost: import.meta.server ? process.env.GQL_HOST : 'client-side'
     });
     const result = await GqlGetProductCategories({ first: 6 });
     const nodes = result?.productCategories?.nodes || [];
@@ -23,6 +24,11 @@ const { data: categoriesData, error: categoriesError, refresh: refreshCategories
       isServer: import.meta.server 
     });
     return nodes;
+  },
+  {
+    // If SSR fails, let it fail gracefully and retry on client
+    server: true,
+    lazy: false,
   }
 );
 
@@ -48,7 +54,8 @@ const { data: productData, error: productError, refresh: refreshProducts } = awa
   async () => {
     console.log('🔵 [Home Page] Products fetch function executing...', {
       isServer: import.meta.server,
-      isClient: import.meta.client
+      isClient: import.meta.client,
+      gqlHost: import.meta.server ? process.env.GQL_HOST : 'client-side'
     });
     const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY });
     const nodes = result?.products?.nodes || [];
@@ -57,15 +64,32 @@ const { data: productData, error: productError, refresh: refreshProducts } = awa
       isServer: import.meta.server 
     });
     return nodes;
+  },
+  {
+    // If SSR fails, let it fail gracefully and retry on client
+    server: true,
+    lazy: false,
   }
 );
 
-// Log any errors
+// Log any errors with full details
 if (categoriesError.value) {
-  console.error('❌ [Home Page] Categories error:', categoriesError.value);
+  console.error('❌ [Home Page] Categories error:', {
+    error: categoriesError.value,
+    message: categoriesError.value?.message,
+    statusCode: categoriesError.value?.statusCode,
+    data: categoriesError.value?.data,
+    stack: categoriesError.value?.stack
+  });
 }
 if (productError.value) {
-  console.error('❌ [Home Page] Product error:', productError.value);
+  console.error('❌ [Home Page] Product error:', {
+    error: productError.value,
+    message: productError.value?.message,
+    statusCode: productError.value?.statusCode,
+    data: productError.value?.data,
+    stack: productError.value?.stack
+  });
 }
 
 const popularProducts = computed(() => productData.value || []);
