@@ -57,13 +57,27 @@ const { data: productData, error: productError, refresh: refreshProducts } = awa
       isClient: import.meta.client,
       gqlHost: import.meta.server ? process.env.GQL_HOST : 'client-side'
     });
-    const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY });
-    const nodes = result?.products?.nodes || [];
-    console.log('✅ [Home Page] Products fetched:', { 
-      count: nodes.length,
-      isServer: import.meta.server 
-    });
-    return nodes;
+    
+    // Try with POPULARITY first, fallback to TOTAL_SALES if it fails
+    try {
+      const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.TOTAL_SALES });
+      const nodes = result?.products?.nodes || [];
+      console.log('✅ [Home Page] Products fetched (by total sales):', { 
+        count: nodes.length,
+        isServer: import.meta.server 
+      });
+      return nodes;
+    } catch (err) {
+      console.warn('⚠️ [Home Page] Failed to fetch with orderby, trying without...', err);
+      // Fallback: fetch without orderby
+      const result = await GqlGetProducts({ first: 5 });
+      const nodes = result?.products?.nodes || [];
+      console.log('✅ [Home Page] Products fetched (no ordering):', { 
+        count: nodes.length,
+        isServer: import.meta.server 
+      });
+      return nodes;
+    }
   },
   {
     // If SSR fails, let it fail gracefully and retry on client
