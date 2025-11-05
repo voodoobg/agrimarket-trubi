@@ -26,9 +26,9 @@ const { data: categoriesData, error: categoriesError, refresh: refreshCategories
     return nodes;
   },
   {
-    // If SSR fails, let it fail gracefully and retry on client
-    server: true,
-    lazy: false,
+    // Disable SSR for home page to avoid "[nuxt] instance unavailable" error
+    server: false,
+    lazy: true,
   }
 );
 
@@ -58,7 +58,7 @@ const { data: productData, error: productError, refresh: refreshProducts } = awa
       gqlHost: import.meta.server ? process.env.GQL_HOST : 'client-side'
     });
     
-    // Try with POPULARITY first, fallback to TOTAL_SALES if it fails
+    // Try with TOTAL_SALES (best-selling products)
     try {
       const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.TOTAL_SALES });
       const nodes = result?.products?.nodes || [];
@@ -80,9 +80,9 @@ const { data: productData, error: productError, refresh: refreshProducts } = awa
     }
   },
   {
-    // If SSR fails, let it fail gracefully and retry on client
-    server: true,
-    lazy: false,
+    // Disable SSR for home page to avoid "[nuxt] instance unavailable" error
+    server: false,
+    lazy: true,
   }
 );
 
