@@ -21,20 +21,4 @@ export default defineNuxtConfig({
     },
     minify: true
   },
-
-  // Add route rules for better caching on Vercel
-  routeRules: {
-    '/': { 
-      swr: 3600,  // Cache for 1 hour, revalidate in background
-    },
-    '/products': { 
-      swr: 1800,  // Cache for 30 minutes
-    },
-    '/product-category/**': { 
-      swr: 1800,  // Cache for 30 minutes
-    },
-    '/categories': { 
-      swr: 3600,
-    },
-  },
 });

@@ -1,6 +1,36 @@
+// Global flag to ensure plugin only runs once
+let pluginInitialized = false;
+
 export default defineNuxtPlugin(async (nuxtApp) => {
   if (!import.meta.env.SSR) {
-    console.log('🔌 [Init Plugin] Starting...');
+    // Prevent multiple executions in the same session
+    if (pluginInitialized) {
+      console.log('⏭️ [Init Plugin] Already initialized in this session, skipping');
+      return;
+    }
+    
+    console.log('🔌 [Init Plugin] Starting...', { 
+      path: window.location.pathname,
+      timestamp: Date.now() 
+    });
+    
+    // Check if we're in a reload loop BEFORE doing anything
+    const reloadTimestamp = localStorage.getItem('init-reload-timestamp');
+    if (reloadTimestamp) {
+      const timeSinceReload = Date.now() - parseInt(reloadTimestamp);
+      console.log('🔌 [Init Plugin] Time since last reload:', timeSinceReload + 'ms');
+      
+      // If last reload was less than 10 seconds ago, we're in a loop - abort!
+      if (timeSinceReload < 10000) {
+        console.error('🚫 [Init Plugin] DETECTED RELOAD LOOP! Aborting init to prevent infinite reloads');
+        pluginInitialized = true; // Mark as initialized to prevent retry
+        // Clear the timestamp so user can try again after 10 seconds
+        return;
+      }
+    }
+    
+    // Mark as initialized
+    pluginInitialized = true;
     
     const { storeSettings } = useAppConfig();
     const { clearAllCookies, clearAllLocalStorage, getDomain } = useHelpers();
@@ -40,9 +70,22 @@ export default defineNuxtPlugin(async (nuxtApp) => {
           console.error('❌ [Init Plugin] GraphQL Error:', err);
           const serverErrors = ['The iss do not match with this server', 'Invalid session token'];
           if (serverErrors.includes(err?.gqlErrors?.[0]?.message)) {
-            console.warn('⚠️ [Init Plugin] Server error detected, clearing cookies and reloading');
+            // Check if we recently reloaded to prevent loop
+            const reloadTimestamp = localStorage.getItem('init-reload-timestamp');
+            if (reloadTimestamp && (Date.now() - parseInt(reloadTimestamp)) < 10000) {
+              console.error('🚫 [Init Plugin] Already reloaded recently, NOT reloading again to prevent loop');
+              return;
+            }
+            
+            console.warn('⚠️ [Init Plugin] Critical server error detected, clearing cookies and reloading');
+            // Set timestamp FIRST before clearing anything
+            const timestamp = Date.now().toString();
+            localStorage.setItem('init-reload-timestamp', timestamp);
+            
             clearAllCookies();
-            clearAllLocalStorage();
+            // Don't clear localStorage - we need to preserve init-reload-timestamp
+            // clearAllLocalStorage();
+            
             window.location.reload();
           }
         } else {
@@ -52,44 +95,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
       });
 
       if (!success) {
-        console.warn('⚠️ [Init Plugin] Cart refresh failed');
-        
-        // Use localStorage for reload count to survive cookie clearing
-        const reloadCount = localStorage.getItem('init-reload-count');
-        const reloadTimestamp = localStorage.getItem('init-reload-timestamp');
-        const now = Date.now();
-        
-        console.log('🔌 [Init Plugin] Reload count check:', { reloadCount, reloadTimestamp, now });
-        
-        // Reset reload count if it's been more than 5 minutes
-        if (reloadTimestamp && (now - parseInt(reloadTimestamp)) > 300000) {
-          console.log('🔌 [Init Plugin] Reload count expired, resetting');
-          localStorage.removeItem('init-reload-count');
-          localStorage.removeItem('init-reload-timestamp');
-        }
-        
-        if (!reloadCount || reloadCount === '0') {
-          console.warn('🔄 [Init Plugin] First failure, setting reload count and preparing reload...');
-          
-          // Set reload count and timestamp BEFORE clearing anything
-          localStorage.setItem('init-reload-count', '1');
-          localStorage.setItem('init-reload-timestamp', now.toString());
-          
-          // Now clear cookies
-          clearAllCookies();
-          // Note: Don't clear localStorage here as it contains our reload count
-          
-          // Log out the user
-          const { logoutUser } = useAuth();
-          await logoutUser();
-          
-          console.warn('🔄 [Init Plugin] Triggering page reload...');
-          window.location.reload();
-        } else {
-          console.warn('⚠️ [Init Plugin] Already reloaded (count: ' + reloadCount + '), BLOCKING reload to prevent infinite loop!');
-          // Don't clear the count - let it expire naturally after 5 minutes
-          return;
-        }
+        console.warn('⚠️ [Init Plugin] Cart refresh failed - continuing anyway (non-critical)');
+        // Don't reload on cart refresh failure - it's not critical
+        // The cart will just be empty, which is fine for browsing
       } else {
         console.log('✅ [Init Plugin] Store initialized successfully');
         // Clear any existing reload count on success

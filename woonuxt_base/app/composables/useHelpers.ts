@@ -198,6 +198,15 @@ export function useHelpers() {
     const shouldClearAndReload = serverErrors.some((serverError) => errorMessage?.toLowerCase().includes(serverError.toLowerCase()));
 
     if (shouldClearAndReload) {
+      // Check if we recently reloaded to prevent infinite loop
+      const reloadTimestamp = localStorage.getItem('init-reload-timestamp');
+      if (reloadTimestamp && (Date.now() - parseInt(reloadTimestamp)) < 10000) {
+        console.error('🚫 [useHelpers] Already reloaded recently, NOT reloading again to prevent loop');
+        return errorMessage;
+      }
+      
+      console.warn('⚠️ [useHelpers] Critical server error detected, clearing cookies and reloading');
+      localStorage.setItem('init-reload-timestamp', Date.now().toString());
       clearAllCookies();
       window.location.reload();
     }

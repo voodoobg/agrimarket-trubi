@@ -6,23 +6,19 @@ const { siteName, description, shortDescription, siteImage } = useAppConfig();
 
 console.log('🔴 [Home Page GraphQL] Fetching categories...');
 const { data: categoriesData, error: categoriesError, refresh: refreshCategories } = await useAsyncData(
-  `home-categories-${Date.now()}`, // Add timestamp to avoid stale cache
+  'home-categories', // Static cache key
   async () => {
     console.log('🔵 [Home Page] Categories fetch function executing...');
     try {
       const result = await GqlGetProductCategories({ first: 6 });
       const nodes = result?.productCategories?.nodes || [];
-      console.log('✅ [Home Page] Categories fetched:', { count: nodes.length, nodes });
+      console.log('✅ [Home Page] Categories fetched:', { count: nodes.length });
       // Return the nodes directly, not the wrapper
       return nodes;
     } catch (err) {
-      console.error('❌ [Home Page] Categories fetch error:', err);
-      return []; // Return empty array on error
+      console.warn('⚠️ [Home Page] Categories fetch error (non-critical):', err);
+      return []; // Return empty array on error - don't let errors propagate
     }
-  },
-  {
-    server: true,  // Force SSR execution
-    immediate: true, // Execute immediately
   }
 );
 
@@ -40,23 +36,19 @@ console.log('✅ [Home Page GraphQL] Categories setup complete', {
 
 console.log('🔴 [Home Page GraphQL] Fetching popular products...');
 const { data: productData, error: productError, refresh: refreshProducts } = await useAsyncData(
-  `home-products-${Date.now()}`, // Add timestamp to avoid stale cache
+  'home-popular-products', // Static cache key
   async () => {
     console.log('🔵 [Home Page] Products fetch function executing...');
     try {
       const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY });
       const nodes = result?.products?.nodes || [];
-      console.log('✅ [Home Page] Products fetched:', { count: nodes.length, nodes });
+      console.log('✅ [Home Page] Products fetched:', { count: nodes.length });
       // Return the nodes directly, not the wrapper
       return nodes;
     } catch (err) {
-      console.error('❌ [Home Page] Products fetch failed:', err);
-      return []; // Return empty array on error
+      console.warn('⚠️ [Home Page] Products fetch error (non-critical):', err);
+      return []; // Return empty array on error - don't let errors propagate
     }
-  },
-  {
-    server: true,  // Force SSR execution
-    immediate: true, // Execute immediately
   }
 );
 
@@ -74,52 +66,41 @@ console.log('✅ [Home Page GraphQL] Popular products setup complete', {
 onMounted(() => {
   console.log('🟢 [Home Page] Component mounted', {
     categoriesCount: productCategories.value.length,
-    productsCount: popularProducts.value.length,
-    categories: productCategories.value,
-    products: popularProducts.value
+    productsCount: popularProducts.value.length
   });
-  
-  // If no data, log the raw state
-  if (productCategories.value.length === 0 || popularProducts.value.length === 0) {
-    console.warn('⚠️ [Home Page] Missing data on mount!', {
-      categoriesRaw: categoriesData.value,
-      productsRaw: productData.value,
-      hasCategories: !!categoriesData.value,
-      hasProducts: !!productData.value
-    });
-  }
 });
 
 console.log('🏠 [Home Page] Setup complete');
 
 // Preload full product list in background for faster /products page
-if (import.meta.client) {
-  console.log('🔄 [Home Page] Starting background product preload...');
-  
-  // Wait a bit to let the page render first
-  setTimeout(async () => {
-    const { getCachedData, setCachedData } = useProductCache();
-    
-    // Check if already cached
-    const cachedProducts = getCachedData<Product[]>('all-products');
-    
-    if (!cachedProducts || cachedProducts.length === 0) {
-      console.log('🔄 [Home Page] Preloading products in background...');
-      try {
-        const result = await GqlGetProducts({ first: 300 });
-        const products = result?.products?.nodes || [];
-        if (products.length > 0) {
-          setCachedData('all-products', products);
-          console.log('✅ [Home Page] Background preload complete', { count: products.length });
-        }
-      } catch (err) {
-        console.warn('⚠️ [Home Page] Background preload failed (non-critical):', err);
-      }
-    } else {
-      console.log('✅ [Home Page] Products already cached, skipping preload');
-    }
-  }, 2000); // Wait 2 seconds after page load
-}
+// TEMPORARILY DISABLED to debug reload loop
+// if (import.meta.client) {
+//   console.log('🔄 [Home Page] Starting background product preload...');
+//   
+//   // Wait a bit to let the page render first
+//   setTimeout(async () => {
+//     const { getCachedData, setCachedData } = useProductCache();
+//     
+//     // Check if already cached
+//     const cachedProducts = getCachedData<Product[]>('all-products');
+//     
+//     if (!cachedProducts || cachedProducts.length === 0) {
+//       console.log('🔄 [Home Page] Preloading products in background...');
+//       try {
+//         const result = await GqlGetProducts({ first: 300 });
+//         const products = result?.products?.nodes || [];
+//         if (products.length > 0) {
+//           setCachedData('all-products', products);
+//           console.log('✅ [Home Page] Background preload complete', { count: products.length });
+//         }
+//       } catch (err) {
+//         console.warn('⚠️ [Home Page] Background preload failed (non-critical):', err);
+//       }
+//     } else {
+//       console.log('✅ [Home Page] Products already cached, skipping preload');
+//     }
+//   }, 2000); // Wait 2 seconds after page load
+// }
 
 useSeoMeta({
   title: `Home`,
