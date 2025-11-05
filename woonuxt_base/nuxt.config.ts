@@ -12,7 +12,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      htmlAttrs: { lang: 'en' },
+      htmlAttrs: { lang: 'bg' },
       link: [{ rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' }],
     },
     pageTransition: { name: 'page', mode: 'out-in' },
@@ -64,6 +64,7 @@ export default defineNuxtConfig({
   i18n: {
     locales: [
       { code: 'en_US', file: 'en-US.json', name: 'English 🇺🇸' },
+      { code: 'bg_BG', file: 'bg-BG.json', name: 'Български 🇧🇬' },
       { code: 'de_DE', file: 'de-DE.json', name: 'Deutsch 🇩🇪' },
       { code: 'es_ES', file: 'es-ES.json', name: 'Español 🇪🇸' },
       { code: 'fr_FR', file: 'fr-FR.json', name: 'Français 🇫🇷' },
@@ -71,7 +72,7 @@ export default defineNuxtConfig({
       { code: 'pt_BR', file: 'pt-BR.json', name: 'Português 🇧🇷' },
     ],
     langDir: 'locales',
-    defaultLocale: 'en_US',
+    defaultLocale: 'bg_BG' as any,
     strategy: 'no_prefix',
     restructureDir: false,
   },

@@ -21,11 +21,29 @@ export function useCheckout() {
     const billing = customer.value?.billing;
     const shipping = shipToDifferentAddress ? customer.value?.shipping : billing;
 
+    // Add custom fields to metadata
+    const metaData = [...orderInput.value.metaData];
+    
+    // Check both shipping and billing for custom fields (shipping is primary billing in this setup)
+    const primaryAddress = shipping; // shipping is used as primary billing address
+    
+    // Add VAT number to metadata if provided (check both addresses)
+    const vatNumber = primaryAddress?.vat || billing?.vat;
+    if (vatNumber) {
+      metaData.push({ key: 'vat_number', value: vatNumber });
+    }
+    
+    // Add company name to metadata (check both addresses)
+    const companyName = primaryAddress?.company || billing?.company;
+    if (companyName) {
+      metaData.push({ key: 'company_name', value: companyName });
+    }
+
     const payload: CheckoutInput = {
       billing,
       shipping,
       shippingMethod: cart.value?.chosenShippingMethods,
-      metaData: orderInput.value.metaData,
+      metaData,
       paymentMethod: orderInput.value.paymentMethod.id,
       customerNote: orderInput.value.customerNote,
       shipToDifferentAddress,

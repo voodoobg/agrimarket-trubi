@@ -20,6 +20,17 @@ const shipping = toRef(props, 'modelValue');
       <input id="last-name" v-model="shipping.lastName" placeholder="Doe" autocomplete="family-name" type="text" required />
     </div>
 
+    <!-- Company Information -->
+    <div class="w-full col-span-full">
+      <label for="company">{{ $t('messages.billing.company') }} ({{ $t('messages.general.optional') }})</label>
+      <input id="company" v-model="shipping.company" placeholder="Company Name" autocomplete="organization" type="text" />
+    </div>
+
+    <div class="w-full col-span-full">
+      <label for="vat">VAT Number ({{ $t('messages.general.optional') }})</label>
+      <input id="vat" v-model="shipping.vat" placeholder="BG123456789" type="text" />
+    </div>
+
     <div class="w-full col-span-full">
       <label for="address1">{{ $t('messages.billing.address1') }}</label>
       <input id="address1" v-model="shipping.address1" placeholder="O'Connell Street 47" autocomplete="street-address" type="text" required />

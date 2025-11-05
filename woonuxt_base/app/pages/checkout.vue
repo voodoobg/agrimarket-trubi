@@ -288,9 +288,9 @@ useSeoMeta({
         <div class="grid w-full max-w-2xl gap-8 checkout-form md:flex-1">
           <!-- Customer details -->
           <div v-if="!viewer && customer?.billing">
-            <h2 class="w-full mb-2 text-2xl font-semibold leading-none">Contact Information</h2>
+            <h2 class="w-full mb-2 text-2xl font-semibold leading-none">{{ $t('messages.billing.contactInformation') }}</h2>
             <p class="mt-1 text-sm text-gray-500">
-              Already have an account? <NuxtLink to="/my-account" @click="navigateToLogin('/checkout')" class="text-primary text-semibold">Log in</NuxtLink>.
+              {{ $t('messages.billing.alreadyHaveAccount') }} <NuxtLink to="/my-account" @click="navigateToLogin('/checkout')" class="text-primary text-semibold">{{ $t('messages.account.login') }}</NuxtLink>.
             </p>
             <div class="w-full mt-4">
               <label for="email">{{ $t('messages.billing.email') }}</label>
@@ -305,7 +305,7 @@ useSeoMeta({
                 @input="checkEmailOnInput(customer.billing.email)"
                 required />
               <Transition name="scale-y" mode="out-in">
-                <div v-if="isInvalidEmail" class="mt-1 text-sm text-red-500">Invalid email address</div>
+                <div v-if="isInvalidEmail" class="mt-1 text-sm text-red-500">{{ $t('messages.billing.invalidEmail') }}</div>
               </Transition>
             </div>
             <template v-if="orderInput.createAccount">
@@ -319,14 +319,14 @@ useSeoMeta({
               </div>
             </template>
             <div v-if="!viewer" class="flex items-center gap-2 my-2">
-              <label for="creat-account">Create an account?</label>
+              <label for="creat-account">{{ $t('messages.billing.createAccount') }}</label>
               <input id="creat-account" v-model="orderInput.createAccount" type="checkbox" name="creat-account" />
             </div>
           </div>
 
           <!-- Shipping Address Section -->
           <div v-if="cart?.availableShippingMethods?.length">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4 leading-none">Billing</h2>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4 leading-none">{{ $t('messages.billing.billing') }}</h2>
 
             <!-- Shipping Address Summary or Form -->
             <div v-if="!isEditingShipping" class="space-y-4">
@@ -370,7 +370,7 @@ useSeoMeta({
 
           <div v-if="shipToDifferentAddress">
             <div class="mb-6">
-              <h2 class="text-2xl font-semibold text-gray-900 mb-2 leading-none">Shipping Address</h2>
+              <h2 class="text-2xl font-semibold text-gray-900 mb-2 leading-none">{{ $t('messages.billing.shippingAddress') }}</h2>
             </div>
             <BillingDetails v-if="customer?.billing" v-model="customer.billing" />
           </div>

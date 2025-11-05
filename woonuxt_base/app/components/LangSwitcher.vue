@@ -1,6 +1,13 @@
 <script setup>
 const { locales, locale, setLocaleCookie } = useI18n();
 
+// Set Bulgarian as default if no locale is set
+onMounted(() => {
+  if (!locale.value || locale.value === 'en_US') {
+    locale.value = 'bg_BG';
+  }
+});
+
 watch(locale, (newLocale) => {
   if (newLocale) setLocaleCookie(newLocale);
 });

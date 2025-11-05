@@ -158,7 +158,17 @@
       "cashOnDelivery": "Cash on Delivery",
       "differentAddress": "Ship to a different address?",
       "useSameAddress": "Use same address for billing",
-      "noAddressProvided": "No address provided yet"
+      "noAddressProvided": "No address provided yet",
+      "company": "Company Name",
+      "contactInformation": "Contact Information",
+      "alreadyHaveAccount": "Already have an account?",
+      "invalidEmail": "Invalid email address",
+      "createAccount": "Create an account?",
+      "shippingAddress": "Shipping Address",
+      "editAddress": "Edit Address",
+      "needsAttention": "Needs attention",
+      "missingInformation": "Missing information",
+      "clickEditToAdd": "Click edit to add address details"
     },
     "error": {
       "invalidUsername": "No account found with that username. Sign up for a new account.",
