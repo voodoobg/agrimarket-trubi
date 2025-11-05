@@ -4,21 +4,25 @@ console.log('🏠 [Home Page] Script setup started');
 import { ProductsOrderByEnum } from '#woo';
 const { siteName, description, shortDescription, siteImage } = useAppConfig();
 
-console.log('🔴 [Home Page GraphQL] Fetching categories...');
+console.log('🔴 [Home Page GraphQL] Fetching categories...', { 
+  isServer: import.meta.server, 
+  isClient: import.meta.client 
+});
+
 const { data: categoriesData, error: categoriesError, refresh: refreshCategories } = await useAsyncData(
   'home-categories', // Static cache key
   async () => {
-    console.log('🔵 [Home Page] Categories fetch function executing...');
-    try {
-      const result = await GqlGetProductCategories({ first: 6 });
-      const nodes = result?.productCategories?.nodes || [];
-      console.log('✅ [Home Page] Categories fetched:', { count: nodes.length });
-      // Return the nodes directly, not the wrapper
-      return nodes;
-    } catch (err) {
-      console.warn('⚠️ [Home Page] Categories fetch error (non-critical):', err);
-      return []; // Return empty array on error - don't let errors propagate
-    }
+    console.log('🔵 [Home Page] Categories fetch function executing...', {
+      isServer: import.meta.server,
+      isClient: import.meta.client
+    });
+    const result = await GqlGetProductCategories({ first: 6 });
+    const nodes = result?.productCategories?.nodes || [];
+    console.log('✅ [Home Page] Categories fetched:', { 
+      count: nodes.length,
+      isServer: import.meta.server 
+    });
+    return nodes;
   }
 );
 
@@ -34,26 +38,34 @@ console.log('✅ [Home Page GraphQL] Categories setup complete', {
   count: productCategories.value.length
 });
 
-console.log('🔴 [Home Page GraphQL] Fetching popular products...');
+console.log('🔴 [Home Page GraphQL] Fetching popular products...', { 
+  isServer: import.meta.server, 
+  isClient: import.meta.client 
+});
+
 const { data: productData, error: productError, refresh: refreshProducts } = await useAsyncData(
   'home-popular-products', // Static cache key
   async () => {
-    console.log('🔵 [Home Page] Products fetch function executing...');
-    try {
-      const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY });
-      const nodes = result?.products?.nodes || [];
-      console.log('✅ [Home Page] Products fetched:', { count: nodes.length });
-      // Return the nodes directly, not the wrapper
-      return nodes;
-    } catch (err) {
-      console.warn('⚠️ [Home Page] Products fetch error (non-critical):', err);
-      return []; // Return empty array on error - don't let errors propagate
-    }
+    console.log('🔵 [Home Page] Products fetch function executing...', {
+      isServer: import.meta.server,
+      isClient: import.meta.client
+    });
+    const result = await GqlGetProducts({ first: 5, orderby: ProductsOrderByEnum.POPULARITY });
+    const nodes = result?.products?.nodes || [];
+    console.log('✅ [Home Page] Products fetched:', { 
+      count: nodes.length,
+      isServer: import.meta.server 
+    });
+    return nodes;
   }
 );
 
+// Log any errors
+if (categoriesError.value) {
+  console.error('❌ [Home Page] Categories error:', categoriesError.value);
+}
 if (productError.value) {
-  console.error('❌ [Home Page GraphQL] Product error:', productError.value);
+  console.error('❌ [Home Page] Product error:', productError.value);
 }
 
 const popularProducts = computed(() => productData.value || []);
@@ -62,12 +74,25 @@ console.log('✅ [Home Page GraphQL] Popular products setup complete', {
   hasError: !!productError.value
 });
 
-// Add mounted hook to verify data on client
-onMounted(() => {
+// Add mounted hook to verify data on client and re-fetch if needed
+onMounted(async () => {
   console.log('🟢 [Home Page] Component mounted', {
     categoriesCount: productCategories.value.length,
-    productsCount: popularProducts.value.length
+    productsCount: popularProducts.value.length,
+    categoriesData: categoriesData.value,
+    productData: productData.value
   });
+  
+  // If no data on mount, try refreshing
+  if ((!productCategories.value || productCategories.value.length === 0) && !categoriesError.value) {
+    console.warn('⚠️ [Home Page] No categories on mount, refreshing...');
+    await refreshCategories();
+  }
+  
+  if ((!popularProducts.value || popularProducts.value.length === 0) && !productError.value) {
+    console.warn('⚠️ [Home Page] No products on mount, refreshing...');
+    await refreshProducts();
+  }
 });
 
 console.log('🏠 [Home Page] Setup complete');
