@@ -55,8 +55,7 @@ onMounted(async () => {
 async function getOrder() {
   try {
     const data = await GqlGetOrder({ 
-      id: params.orderId as string,
-      orderKey: query.key as string
+      id: params.orderId as string
     });
     if (data.order) {
       order.value = data.order;
@@ -66,6 +65,12 @@ async function getOrder() {
   } catch (err: any) {
     console.error('Error fetching order:', err);
     errorMessage.value = err?.gqlErrors?.[0]?.message || 'Could not find order';
+    
+    // If authorization fails, still show a success message for the user
+    // They can view the order from their email or my-account page
+    if (err?.gqlErrors?.[0]?.message?.includes('Not authorized')) {
+      console.warn('Order created but user not authorized to view immediately. This is expected for guest orders.');
+    }
   }
   isLoaded.value = true;
 }
@@ -87,7 +92,17 @@ useSeoMeta({
     class="w-full min-h-[600px] flex items-center p-4 text-gray-800 md:bg-white md:rounded-xl md:mx-auto md:shadow-lg md:my-24 md:mt-8 md:max-w-3xl md:p-16 flex-col">
     <LoadingIcon v-if="!isLoaded" class="flex-1" />
     <template v-else>
-      <div v-if="order" class="w-full">
+      <!-- Show success message even if we can't fetch order details (for guest checkout) -->
+      <div v-if="!order && errorMessage.includes('Not authorized') && isCheckoutPage" class="w-full text-center">
+        <Icon name="ion:checkmark-circle" size="80" class="text-green-500 mx-auto mb-4" />
+        <h1 class="text-2xl font-semibold mb-4">{{ $t('messages.shop.orderThanks') }}</h1>
+        <p class="text-gray-600 mb-4">Вашата поръчка #{{ params.orderId }} е получена успешно.</p>
+        <p class="text-gray-600 mb-8">Ще получите имейл с детайлите на поръчката в най-скоро време.</p>
+        <NuxtLink to="/products" class="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark">
+          Продължете с пазаруването
+        </NuxtLink>
+      </div>
+      <div v-else-if="order" class="w-full">
         <template v-if="isSummaryPage">
           <div class="flex items-center gap-4">
             <NuxtLink

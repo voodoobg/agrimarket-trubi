@@ -149,7 +149,7 @@ useHead({
       <!-- Loading State (only show if no cached data) -->
       <div v-if="showLoading" class="flex flex-col items-center justify-center py-24">
         <LoadingIcon size="60" />
-        <p class="mt-4 text-lg text-gray-600">Loading products...</p>
+        <p class="mt-4 text-lg text-gray-600">Продуктите се зареждат...</p>
       </div>
 
       <!-- Products Loaded (from cache or fresh) -->
@@ -173,7 +173,7 @@ useHead({
       <template #fallback>
         <div class="flex flex-col items-center justify-center py-24">
           <LoadingIcon size="60" />
-          <p class="mt-4 text-lg text-gray-600">Loading products...</p>
+          <p class="mt-4 text-lg text-gray-600">Продуктите се зареждат...</p>
         </div>
       </template>
     </ClientOnly>
