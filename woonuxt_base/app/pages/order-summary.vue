@@ -54,14 +54,18 @@ onMounted(async () => {
 
 async function getOrder() {
   try {
-    const data = await GqlGetOrder({ id: params.orderId as string });
+    const data = await GqlGetOrder({ 
+      id: params.orderId as string,
+      orderKey: query.key as string
+    });
     if (data.order) {
       order.value = data.order;
     } else {
       errorMessage.value = 'Could not find order';
     }
   } catch (err: any) {
-    errorMessage.value = err?.gqlErrors?.[0].message || 'Could not find order';
+    console.error('Error fetching order:', err);
+    errorMessage.value = err?.gqlErrors?.[0]?.message || 'Could not find order';
   }
   isLoaded.value = true;
 }

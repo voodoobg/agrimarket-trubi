@@ -18,26 +18,34 @@ export function useCheckout() {
   // Helper function to build checkout payload
   const buildCheckoutPayload = (isPaid = false): CheckoutInput => {
     const { username, password, shipToDifferentAddress } = orderInput.value;
-    const billing = customer.value?.billing;
-    const shipping = shipToDifferentAddress ? customer.value?.shipping : billing;
+    
+    // In this theme's logic, customer.shipping is used as the billing address
+    // and customer.billing is used as the shipping address (confusing naming)
+    const billing = customer.value?.shipping || customer.value?.billing;
+    const shipping = shipToDifferentAddress ? customer.value?.billing : customer.value?.shipping;
 
     // Add custom fields to metadata
     const metaData = [...orderInput.value.metaData];
     
-    // Check both shipping and billing for custom fields (shipping is primary billing in this setup)
-    const primaryAddress = shipping; // shipping is used as primary billing address
-    
-    // Add VAT number to metadata if provided (check both addresses)
-    const vatNumber = primaryAddress?.vat || billing?.vat;
+    // Get VAT and company from the billing address (which is in customer.shipping)
+    const vatNumber = billing?.vat;
     if (vatNumber) {
       metaData.push({ key: 'vat_number', value: vatNumber });
     }
     
-    // Add company name to metadata (check both addresses)
-    const companyName = primaryAddress?.company || billing?.company;
+    const companyName = billing?.company;
     if (companyName) {
       metaData.push({ key: 'company_name', value: companyName });
     }
+
+    console.log('💳 [Checkout] Building payload:', { 
+      billing, 
+      shipping, 
+      shipToDifferentAddress,
+      vatNumber,
+      companyName,
+      metaData 
+    });
 
     const payload: CheckoutInput = {
       billing,
@@ -120,19 +128,22 @@ export function useCheckout() {
     isUpdatingCart.value = true;
 
     try {
-      if (!viewer?.value?.id) {
-        throw new Error('Viewer ID is missing.');
+      // For logged-in users, update customer data
+      if (viewer?.value?.id) {
+        const { updateCustomer } = await GqlUpdateCustomer({
+          input: {
+            id: viewer.value.id,
+            shipping: orderInput.value.shipToDifferentAddress ? customer.value.shipping : customer.value.billing,
+            billing: customer.value.billing,
+          } as UpdateCustomerInput,
+        });
+
+        if (updateCustomer) await refreshCart();
+      } else {
+        // For guest users, just refresh the cart to recalculate shipping
+        // The address data is already in customer.value and will be used during checkout
+        await refreshCart();
       }
-
-      const { updateCustomer } = await GqlUpdateCustomer({
-        input: {
-          id: viewer.value.id,
-          shipping: orderInput.value.shipToDifferentAddress ? customer.value.shipping : customer.value.billing,
-          billing: customer.value.billing,
-        } as UpdateCustomerInput,
-      });
-
-      if (updateCustomer) await refreshCart();
     } catch (error) {
       console.error('Error updating shipping location:', error);
     } finally {
