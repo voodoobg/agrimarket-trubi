@@ -21,27 +21,47 @@ export function useCheckout() {
     
     // In this theme's logic, customer.shipping is used as the billing address
     // and customer.billing is used as the shipping address (confusing naming)
-    const billing = customer.value?.shipping || customer.value?.billing;
-    const shipping = shipToDifferentAddress ? customer.value?.billing : customer.value?.shipping;
+    const billingRaw = customer.value?.shipping || customer.value?.billing;
+    const shippingRaw = shipToDifferentAddress ? customer.value?.billing : customer.value?.shipping;
 
     // Add custom fields to metadata
     const metaData = [...orderInput.value.metaData];
     
     // Get VAT and company from the billing address (which is in customer.shipping)
-    const vatNumber = billing?.vat;
+    const vatNumber = billingRaw?.vat;
     if (vatNumber) {
       metaData.push({ key: 'vat_number', value: vatNumber });
     }
     
-    const companyName = billing?.company;
+    const companyName = billingRaw?.company;
     if (companyName) {
       metaData.push({ key: 'company_name', value: companyName });
+    }
+
+    // Remove custom fields (vat, company) from address objects as they're not part of CustomerAddressInput type
+    const removeCustomFields = (address: any) => {
+      if (!address) return address;
+      const { vat, company, ...cleanAddress } = address;
+      return cleanAddress;
+    };
+
+    const billing = removeCustomFields(billingRaw);
+    const shipping = removeCustomFields(shippingRaw);
+
+    // IMPORTANT: Ensure email is included in billing address
+    // The email field is stored separately in customer.billing.email in the checkout form
+    // We need to explicitly add it to the billing address that's sent to WooCommerce
+    // Note: phone is already in customer.shipping.phone which is used as billingRaw
+    if (billing && customer.value?.billing?.email) {
+      billing.email = customer.value.billing.email;
     }
 
     console.log('💳 [Checkout] Building payload:', { 
       billing, 
       shipping, 
       shipToDifferentAddress,
+      billingEmail: billing?.email,
+      billingPhone: billing?.phone,
       vatNumber,
       companyName,
       metaData 
@@ -176,18 +196,56 @@ export function useCheckout() {
       // Build checkout payload
       const checkoutPayload = buildCheckoutPayload(isPaid);
 
+      console.log('🛒 [Checkout] Submitting checkout...', { 
+        paymentMethod: checkoutPayload.paymentMethod,
+        hasMetadata: checkoutPayload.metaData.length > 0 
+      });
+
       // Process the checkout
       const { checkout } = await GqlCheckout(checkoutPayload);
+
+      console.log('📦 [Checkout] Received response:', { 
+        result: checkout?.result,
+        hasOrder: !!checkout?.order,
+        orderObject: checkout?.order,
+        redirect: checkout?.redirect
+      });
 
       // Handle account creation if requested
       await handleAccountCreation();
 
-      const orderId = checkout?.order?.databaseId;
-      const orderKey = checkout?.order?.orderKey;
+      // Try multiple ways to extract order ID and key
+      const orderId = checkout?.order?.databaseId || checkout?.order?.id || checkout?.order?.orderId;
+      const orderKey = checkout?.order?.orderKey || checkout?.order?.key;
+
+      console.log('🔑 [Checkout] Extracted order details:', { orderId, orderKey });
+
+      // If we still don't have orderId/orderKey, try to parse from redirect URL
+      if ((!orderId || !orderKey) && checkout?.redirect) {
+        const redirectUrl = checkout.redirect;
+        const orderIdMatch = redirectUrl.match(/order-received\/(\d+)/);
+        const orderKeyMatch = redirectUrl.match(/key=([^&]+)/);
+        
+        const extractedOrderId = orderIdMatch ? orderIdMatch[1] : null;
+        const extractedOrderKey = orderKeyMatch ? orderKeyMatch[1] : null;
+        
+        console.log('🔗 [Checkout] Extracted from redirect URL:', { 
+          extractedOrderId, 
+          extractedOrderKey 
+        });
+        
+        if (extractedOrderId && extractedOrderKey) {
+          // Use extracted values and redirect manually
+          router.push(`/checkout/order-received/${extractedOrderId}/?key=${extractedOrderKey}`);
+          await finalizeCheckout(checkout);
+          return checkout;
+        }
+      }
 
       // Ensure we have required order details
       if (!orderId || !orderKey) {
-        throw new Error('Order ID or order key is missing from checkout response');
+        console.error('❌ [Checkout] Missing order details after all attempts. Full checkout response:', checkout);
+        throw new Error(`Order creation failed. Result: ${checkout?.result || 'unknown'}. Please check if all required fields are filled.`);
       }
 
       // Handle PayPal redirect if needed
@@ -203,8 +261,32 @@ export function useCheckout() {
 
       return checkout;
     } catch (error: any) {
-      console.error('Checkout error:', error);
-      if (error.message) alert(error.message);
+      console.error('❌ [Checkout] Error:', error);
+      
+      // Check for GraphQL errors
+      if (error?.gqlErrors?.length > 0) {
+        console.error('❌ [Checkout] GraphQL Errors - Full details:');
+        error.gqlErrors.forEach((gqlError: any, index: number) => {
+          console.error(`  Error ${index + 1}:`, {
+            message: gqlError.message,
+            locations: gqlError.locations,
+            path: gqlError.path,
+            extensions: gqlError.extensions,
+            fullError: gqlError
+          });
+        });
+        
+        const errorMessages = error.gqlErrors.map((e: any) => e.message).join('\n');
+        console.error('❌ [Checkout] Error messages:', errorMessages);
+        alert(`Checkout failed:\n${errorMessages}`);
+      } else if (error.message) {
+        console.error('❌ [Checkout] Error message:', error.message);
+        alert(error.message);
+      } else {
+        console.error('❌ [Checkout] Unknown error structure:', JSON.stringify(error, null, 2));
+        alert('An unexpected error occurred during checkout. Please try again.');
+      }
+      
       return null;
     } finally {
       isProcessingOrder.value = false;

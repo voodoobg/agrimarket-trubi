@@ -41,15 +41,13 @@ const billing = toRef(props, 'modelValue');
       <StateSelect
         id="state"
         v-model="billing.state"
-        :default-value="billing.state"
         :country-code="billing.country"
-        @change="updateShippingLocation"
         autocomplete="address-level1" />
     </div>
 
     <div v-if="isBillingAddressEnabled" class="w-full">
       <label for="country">{{ $t('messages.billing.country') }}</label>
-      <CountrySelect id="country" v-model="billing.country" :default-value="billing.country" @change="updateShippingLocation" autocomplete="country" />
+      <CountrySelect id="country" v-model="billing.country" @change="updateShippingLocation" autocomplete="country" />
     </div>
 
     <div v-if="isBillingAddressEnabled" class="w-full">

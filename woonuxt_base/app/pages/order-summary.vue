@@ -12,6 +12,7 @@ const fetchDelay = ref<boolean>(query.fetch_delay === 'true');
 const delayLength = 2500;
 const isLoaded = ref<boolean>(false);
 const errorMessage = ref('');
+const isGuestOrderSuccess = ref(false); // Flag for successful guest order
 
 const isGuest = computed(() => !customer.value?.email);
 const isSummaryPage = computed<boolean>(() => name === 'order-summary');
@@ -63,13 +64,17 @@ async function getOrder() {
       errorMessage.value = 'Could not find order';
     }
   } catch (err: any) {
-    console.error('Error fetching order:', err);
-    errorMessage.value = err?.gqlErrors?.[0]?.message || 'Could not find order';
+    const errorMsg = err?.gqlErrors?.[0]?.message || 'Could not find order';
     
-    // If authorization fails, still show a success message for the user
-    // They can view the order from their email or my-account page
-    if (err?.gqlErrors?.[0]?.message?.includes('Not authorized')) {
-      console.warn('Order created but user not authorized to view immediately. This is expected for guest orders.');
+    // If authorization fails, it's expected for guest orders
+    // Show success message instead of error
+    if (errorMsg?.includes('Not authorized') && isCheckoutPage.value) {
+      console.warn('✅ Order created successfully! User not authorized to view details immediately (expected for guest orders).');
+      isGuestOrderSuccess.value = true;
+      // Don't set errorMessage for authorization errors on checkout page
+    } else {
+      console.error('Error fetching order:', err);
+      errorMessage.value = errorMsg;
     }
   }
   isLoaded.value = true;
@@ -92,8 +97,8 @@ useSeoMeta({
     class="w-full min-h-[600px] flex items-center p-4 text-gray-800 md:bg-white md:rounded-xl md:mx-auto md:shadow-lg md:my-24 md:mt-8 md:max-w-3xl md:p-16 flex-col">
     <LoadingIcon v-if="!isLoaded" class="flex-1" />
     <template v-else>
-      <!-- Show success message even if we can't fetch order details (for guest checkout) -->
-      <div v-if="!order && errorMessage.includes('Not authorized') && isCheckoutPage" class="w-full text-center">
+      <!-- Show success message for guest checkout when order details can't be fetched -->
+      <div v-if="isGuestOrderSuccess && !order" class="w-full text-center">
         <Icon name="ion:checkmark-circle" size="80" class="text-green-500 mx-auto mb-4" />
         <h1 class="text-2xl font-semibold mb-4">{{ $t('messages.shop.orderThanks') }}</h1>
         <p class="text-gray-600 mb-4">Вашата поръчка #{{ params.orderId }} е получена успешно.</p>

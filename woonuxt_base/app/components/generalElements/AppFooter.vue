@@ -7,7 +7,7 @@ const { wishlistLink } = useAuth();
   <footer class="bg-white order-last">
     <div class="container flex flex-wrap justify-between gap-12 my-24 md:gap-24">
       <div class="mr-auto">
-        <Logo />
+        <NuxtLink to="/" class="logo-text block mb-4">Agro Flow</NuxtLink>
         <WebsiteShortDescription />
         <LangSwitcher class="mt-8" />
       </div>
@@ -88,8 +88,8 @@ const { wishlistLink } = useAuth();
     <div class="container border-t flex items-center justify-center mb-4">
       <div class="copywrite">
         <p class="py-4 text-xs text-center">
-          <a href="https://woonuxt.com" :title="`WooNuxt v${wooNuxtVersionInfo}`">{{ `WooNuxt v${wooNuxtVersionInfo}` }}</a> - by
-          <a href="https://scottyzen.com" title="Scott Kennedy - Web Developer" target="_blank">Scott Kennedy</a>
+          <!-- <a href="https://woonuxt.com" :title="`WooNuxt v${wooNuxtVersionInfo}`">{{ `WooNuxt v${wooNuxtVersionInfo}` }}</a> - by
+          <a href="https://scottyzen.com" title="Scott Kennedy - Web Developer" target="_blank">Scott Kennedy</a> -->
         </p>
       </div>
       <SocialIcons class="ml-auto" />
@@ -100,5 +100,20 @@ const { wishlistLink } = useAuth();
 <style scoped lang="postcss">
 a {
   @apply hover:underline;
+}
+
+.logo-text {
+  color: #7f54b2;
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.logo-text:hover {
+  opacity: 0.8;
+  text-decoration: none;
 }
 </style>

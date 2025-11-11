@@ -67,9 +67,17 @@ export default defineNuxtPlugin(async (nuxtApp) => {
       useGqlError((err: any) => {
         // Only log actual GraphQL errors with messages
         if (err?.gqlErrors && err.gqlErrors.length > 0) {
+          const errorMessage = err?.gqlErrors?.[0]?.message || '';
+          
+          // Skip logging "Not authorized" errors for order queries (expected for guest checkout)
+          if (errorMessage.includes('Not authorized') && err?.operationName === 'getOrder') {
+            console.log('ℹ️ [Init Plugin] Guest order authorization (expected)');
+            return;
+          }
+          
           console.error('❌ [Init Plugin] GraphQL Error:', err);
           const serverErrors = ['The iss do not match with this server', 'Invalid session token'];
-          if (serverErrors.includes(err?.gqlErrors?.[0]?.message)) {
+          if (serverErrors.includes(errorMessage)) {
             // Check if we recently reloaded to prevent loop
             const reloadTimestamp = localStorage.getItem('init-reload-timestamp');
             if (reloadTimestamp && (Date.now() - parseInt(reloadTimestamp)) < 10000) {

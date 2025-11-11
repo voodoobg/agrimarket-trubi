@@ -46,18 +46,28 @@ const editBillingAddress = () => {
 };
 
 // Watch for address preference changes to auto-copy shipping to billing when using same address
-watch(shipToDifferentAddress, (newValue) => {
+watch(shipToDifferentAddress, (newValue, oldValue) => {
+  // Only trigger if the value actually changed to prevent unnecessary updates
+  if (newValue === oldValue) return;
+  
   if (newValue && customer.value?.shipping && customer.value?.billing) {
-    // Copy shipping address to billing address when shipping to different address is selected
-    Object.assign(customer.value.billing, {
-      ...customer.value.shipping,
-      email: customer.value.billing.email, // Preserve email
+    // Use nextTick to ensure DOM is stable before copying addresses
+    nextTick(() => {
+      if (!customer.value?.shipping || !customer.value?.billing) return;
+      // Copy shipping address to billing address when shipping to different address is selected
+      Object.assign(customer.value.billing, {
+        ...customer.value.shipping,
+        email: customer.value.billing.email, // Preserve email
+      });
     });
   }
 });
 
 onBeforeMount(async () => {
   if (query.cancel_order) window.close();
+
+  // Use nextTick to ensure cart data is stable before initializing addresses
+  await nextTick();
 
   // Initialize shipping address if it doesn't exist and we have shipping methods
   if (cart.value?.availableShippingMethods?.length && customer.value && !customer.value.shipping) {
@@ -329,7 +339,7 @@ useSeoMeta({
             <h2 class="text-2xl font-semibold text-gray-900 mb-4 leading-none">{{ $t('messages.billing.billing') }}</h2>
 
             <!-- Shipping Address Summary or Form -->
-            <div v-if="!isEditingShipping" class="space-y-4">
+            <div v-if="!isEditingShipping" key="shipping-summary" class="space-y-4">
               <!-- Shipping Address Summary -->
               <AddressSummary :address="customer?.shipping" :show-validation-warnings="!!viewer" @edit="editShippingAddress" />
 
@@ -348,9 +358,9 @@ useSeoMeta({
             </div>
 
             <!-- Shipping Address Form (when editing - stays open once clicked) -->
-            <div v-else class="space-y-6">
+            <div v-else key="shipping-form" class="space-y-6">
               <div>
-                <ShippingDetails v-if="customer?.shipping" v-model="customer.shipping" />
+                <ShippingDetails v-if="customer?.shipping" v-model="customer.shipping" key="shipping-details" />
               </div>
 
               <!-- Ship to Different Address Checkbox (also shown during editing) -->
@@ -368,25 +378,24 @@ useSeoMeta({
             </div>
           </div>
 
-          <div v-if="shipToDifferentAddress">
+          <!-- Billing Details: Show when shipping to different address OR when no shipping methods -->
+          <div v-if="shipToDifferentAddress || !cart?.availableShippingMethods?.length">
             <div class="mb-6">
-              <h2 class="text-2xl font-semibold text-gray-900 mb-2 leading-none">{{ $t('messages.billing.shippingAddress') }}</h2>
+              <h2 class="text-2xl font-semibold text-gray-900 mb-2 leading-none">
+                {{ shipToDifferentAddress ? $t('messages.billing.shippingAddress') : $t('messages.billing.billingDetails') }}
+              </h2>
             </div>
-            <BillingDetails v-if="customer?.billing" v-model="customer.billing" />
-          </div>
-          <!-- Fallback: If no shipping methods available, show billing details -->
-          <div v-if="!cart?.availableShippingMethods?.length">
-            <h2 class="w-full mb-3 text-2xl font-semibold">{{ $t('messages.billing.billingDetails') }}</h2>
-            <BillingDetails v-if="customer?.billing" v-model="customer.billing" />
+            <BillingDetails v-if="customer?.billing" v-model="customer.billing" key="billing-details" />
           </div>
 
           <hr />
 
           <!-- Shipping methods -->
-          <div v-if="cart?.availableShippingMethods?.length">
+          <div v-if="cart?.availableShippingMethods?.length" key="shipping-methods">
             <h3 class="mb-4 text-xl font-semibold leading-none">{{ $t('messages.general.shippingSelect') }}</h3>
             <ShippingOptions
               v-if="cart.availableShippingMethods[0]?.rates && cart.chosenShippingMethods?.[0]"
+              key="shipping-options"
               :options="cart.availableShippingMethods[0].rates"
               :active-option="cart.chosenShippingMethods[0]" />
           </div>

@@ -7,7 +7,7 @@ const { isShowingSearch } = useSearching();
     <div class="container flex items-center justify-between py-4">
       <div class="flex items-center">
         <MenuTrigger class="lg:hidden" />
-        <Logo class="md:w-[160px]" />
+        <NuxtLink to="/" class="logo-text md:w-[160px]">Agro Flow</NuxtLink>
       </div>
       <MainMenu class="items-center hidden gap-6 text-sm text-gray-500 lg:flex lg:px-4" />
       <div class="flex justify-end items-center md:w-[160px] flex-1 ml-auto gap-4 md:gap-6">
@@ -26,3 +26,25 @@ const { isShowingSearch } = useSearching();
     </Transition>
   </header>
 </template>
+
+<style scoped>
+.logo-text {
+  color: #7f54b2;
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.logo-text:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .logo-text {
+    font-size: 1.5rem;
+  }
+}
+</style>

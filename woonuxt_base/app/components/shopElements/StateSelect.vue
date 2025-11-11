@@ -6,10 +6,20 @@ const props = defineProps({
 });
 
 const { getStatesForCountry, countryStatesDict } = useCountry();
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'change']);
+
+const localValue = ref(props.modelValue);
+
+// Sync local value with prop changes
+watch(() => props.modelValue, (newValue) => {
+  localValue.value = newValue;
+});
 
 function select(evt) {
-  emit('update:modelValue', evt.target.value);
+  const value = evt.target.value;
+  localValue.value = value;
+  emit('update:modelValue', value);
+  emit('change', value);
 }
 
 async function updateState() {
@@ -31,11 +41,11 @@ watch(
 </script>
 
 <template>
-  <select @change="select" v-if="countryStatesDict[props.countryCode]?.length" class="h-[42px]">
-    <option value="" :selected="!props.modelValue">Select a state</option>
-    <option v-for="state in countryStatesDict[props.countryCode]" :key="state.code" :value="state.code" :selected="state.code === props.modelValue">
+  <select v-if="countryStatesDict[props.countryCode]?.length" :value="localValue" @change="select" class="h-[42px]">
+    <option value="">Select a state</option>
+    <option v-for="state in countryStatesDict[props.countryCode]" :key="state.code" :value="state.code">
       {{ state.name }}
     </option>
   </select>
-  <input v-else type="text" @change="select" placeholder="State" />
+  <input v-else type="text" :value="localValue" @input="select" placeholder="State" />
 </template>
